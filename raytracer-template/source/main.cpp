@@ -29,7 +29,7 @@ color4 lightColor;
 point4 cameraPosition;
 
 //Recursion depth for raytracer
-int maxDepth = 7;
+int maxDepth = 10;
 
 void initGL();
 
@@ -340,7 +340,7 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
     intersections.push_back(sceneObjects[i]->intersect(p0, E));
     intersections[intersections.size()-1].ID_ = i;
 
-    if (intersections[intersections.size() - 1].t != std::numeric_limits< double >::infinity() && !(sceneObjects[intersections[intersections.size() - 1].ID_] == lastHitObject) && intersections[intersections.size() - 1].t < minT) {
+    if (intersections[intersections.size() - 1].t != std::numeric_limits< double >::infinity() && /*!(sceneObjects[intersections[intersections.size() - 1].ID_] == lastHitObject) &&*/ intersections[intersections.size() - 1].t < minT) {
         minT = intersections[intersections.size() - 1].t;
         plusProcheObject = i;
         }
@@ -371,8 +371,8 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                   
               }*/
              // else {
-              double ombre = shadowFeeler(intersections[plusProcheObject].P, sceneObjects[plusProcheObject], L, length(L));
-              
+             // double ombre = shadowFeeler(intersections[plusProcheObject].P, sceneObjects[plusProcheObject], L, length(L));
+              double ombre = 1;
 
                   // L.w = 0;
                  //  V.w = 0;
@@ -436,7 +436,7 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
             //      color = vec4(0., 0.0, 0.0, 1.);
 
                   //effet miroir
-                  if (object->shadingValues.Ks > 0) {
+                  if (object->shadingValues.Ks > 0 && depth < maxDepth){
 
                     vec4 miroir = normalize(2 * (min(1, max(dot(N, V), 0))) * N - V);
                      // vec4 miroir = normalize(-V - (2 * (min(1, max(dot(N, -V), 0))) * N));
@@ -462,31 +462,55 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                   }
 
                   //effet transparance
-                  if (object->shadingValues.Kt > 0) {
+                  if (object->shadingValues.Kt > 0 && depth <maxDepth) {
 
                       //  vec4 transparance = normalize(2 * (min(1, max(dot(-N, V), 0))) * (-N) - V);
 
                       //  vec4 transmission = normalize(min(max((dot(-N, V) * object->shadingValues.Kr), 1), 0) * (-N) - V);
-
+                      
                       double n1, n2;
                       if (lastHitObject == object) {
                          n1 = object->shadingValues.Kr;
-                          n2 = 1;
+                          n2 = 1.0;
                      }
-                      else {
+                     else {
                           n2 = object->shadingValues.Kr;
-                          n1 = 1;
+                          n1 = 1.0;
+                          //N = N;
                       }
+                      
+
 
                       double n = n1 / n2;
-                   
-                      double teta = acos(dot(N, V) / (length(N) * length(V)));
-                      double teta_t = asin(n * sin(teta));
-                     // vec4 M = normalize((N * dot(N, V) - V));
+                      
+                     //double cosTeta = dot(N, V) / (length(N) * length(V));
+                      double cosTeta = dot(N, E);
+                     if (cosTeta < 0) cosTeta = -cosTeta;
+                     else
+                         N = -N;
+
                     
+                      double c2 = sqrt(1- pow(1/ object->shadingValues.Kr,2) * pow(1 - cos(dot(E, N)),2));
+
+
+                      vec4 transmission = normalize(n * E + (n * cosTeta - c2) * N);
+                      
+                    
+                     
+                  
+                      //////////////////
+
+             //         double teta = acos(dot(N, V) / (length(N) * length(V)));
+                //     double teta_t = asin(n * sin(teta));
+                //      vec4 M = normalize((N * dot(N, V) - V));
+                    
+                      ///////////////
+                      
+                      
                     //  vec4 transmission = normalize(sin(teta_t) * M - cos(teta_t) *N);
 
-                      vec4 transmission = normalize((teta_t- teta)*(-N)-V);
+                     // vec4 transmission = normalize((teta_t- teta)*(-N)-V);
+                 //     vec4 transmission = normalize((teta_t) * (-N) - V);
 
                        // sin(teta_t) = (n1 / n2) × sin(teta_i)
 
@@ -494,17 +518,19 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
 
 
                         //transmission = sin teta_t M - cos  teta_t N
+                     /*
+                     double teta = acos(dot(V, N) / (length(N) * length(V)));
 
-                  /*   double teta = acos(dot(V, N) / (length(N) * length(V)));
 
-                      double racine = 1 - ((n * n) + (sin(teta) * sin(teta)));
+                      double racine = 1 - ((n * n) - (sin(teta) * sin(teta)));
                       vec4 transmission;
                       if (racine < 0)
-                           transmission = normalize(n * (-V) + (n * (-cos(teta)) + sqrt(-racine)) * N);
+                          //transmission = normalize(n * (-V) + (n * (-cos(teta)) + sqrt(-racine)) * N);
+                          transmission = 0;
                       else
                            transmission = normalize(n * (-V) + (n * cos(teta) - sqrt(racine)) * N);
-
-                          */
+                      */
+                          
                           
                           color4 colorTemp = castRay(intersections[plusProcheObject].P, transmission, object, depth + 1);
                           //  colorTemp = colorTemp * object->shadingValues.Kt;
@@ -602,7 +628,7 @@ void initCornellBox(){
     _shadingValues.color = vec4(0.0,1.0,0.0,1.0);
     _shadingValues.Ka = 0.0;
     _shadingValues.Kd = 1.0;
-    _shadingValues.Ks = 1.0;
+    _shadingValues.Ks = 1.;
     _shadingValues.Kn = 16.0;
     _shadingValues.Kt = 0.0;
     _shadingValues.Kr = 0.0;
