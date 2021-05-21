@@ -371,8 +371,8 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                   
               }*/
              // else {
-             // double ombre = shadowFeeler(intersections[plusProcheObject].P, sceneObjects[plusProcheObject], L, length(L));
-              double ombre = 1;
+              double ombre = shadowFeeler(intersections[plusProcheObject].P, sceneObjects[plusProcheObject], L, length(L));
+            // double ombre = 1;
 
                   // L.w = 0;
                  //  V.w = 0;
@@ -476,22 +476,22 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                      else {
                           n2 = object->shadingValues.Kr;
                           n1 = 1.0;
-                          //N = N;
+                         
                       }
                       
-
+                      
 
                       double n = n1 / n2;
-                      
+  
                      //double cosTeta = dot(N, V) / (length(N) * length(V));
-                      double cosTeta = dot(N, E);
+                      double cosTeta = dot(N, E) / (length(E) * length(V));
                      if (cosTeta < 0) cosTeta = -cosTeta;
                      else
                          N = -N;
 
                     
-                      double c2 = sqrt(1- pow(1/ object->shadingValues.Kr,2) * pow(1 - cos(dot(E, N)),2));
-
+                     // double c2 = sqrt(1- pow(1/ object->shadingValues.Kr,2) * pow(1 - cos(dot(E, N)),2));
+                     double c2 = sqrt(1 - n*n*(1-cosTeta*cosTeta));
 
                       vec4 transmission = normalize(n * E + (n * cosTeta - c2) * N);
                       
@@ -499,9 +499,13 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                      
                   
                       //////////////////
-
-             //         double teta = acos(dot(N, V) / (length(N) * length(V)));
-                //     double teta_t = asin(n * sin(teta));
+             //         double cosTeta = dot(N, V) / (length(N) * length(V));
+              //        if (cosTeta < 0) {
+             //             cosTeta = -cosTeta; N = -N;
+               //       }
+                      //double teta = acos(dot(N, V) / (length(N) * length(V)));
+             //         double teta = acos(cosTeta);
+             //        double teta_t = asin(n * sin(teta));
                 //      vec4 M = normalize((N * dot(N, V) - V));
                     
                       ///////////////
@@ -509,8 +513,8 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                       
                     //  vec4 transmission = normalize(sin(teta_t) * M - cos(teta_t) *N);
 
-                     // vec4 transmission = normalize((teta_t- teta)*(-N)-V);
-                 //     vec4 transmission = normalize((teta_t) * (-N) - V);
+                    // vec4 transmission = normalize((teta_t- teta)*(-N)-V);
+                    //   vec4 transmission = normalize(cos(teta_t-teta) * (-N) - V);
 
                        // sin(teta_t) = (n1 / n2) × sin(teta_i)
 
@@ -531,24 +535,22 @@ vec4 castRay(vec4 p0, vec4 E, Object *lastHitObject, int depth){
                            transmission = normalize(n * (-V) + (n * cos(teta) - sqrt(racine)) * N);
                       */
                           
-                          
-                          color4 colorTemp = castRay(intersections[plusProcheObject].P, transmission, object, depth + 1);
-                          //  colorTemp = colorTemp * object->shadingValues.Kt;
-                           colorTemp = colorTemp * max(object->shadingValues.Kt-0.1,0);
-                            // color = colorTemp + color;
-                       //   color.x = max(color.x, colorTemp.x);
-                       //   color.y = max(color.y, colorTemp.y);
-                       //   color.z = max(color.z, colorTemp.z);
-                       //   color.w = max(color.w, colorTemp.w);
-                       // 
-                       // 
-                       // 
-                       // 
-                       // }
-                           color = color * max(1 - (object->shadingValues.Kt - 0.1), 0.1);
-                           color = (color + colorTemp);
-                           color.w = 1;
+                      color4 colorTemp = castRay(intersections[plusProcheObject].P, transmission, object, depth + 1);
+                      //  colorTemp = colorTemp * object->shadingValues.Kt;
+                      colorTemp = colorTemp * max(object->shadingValues.Kt - 0.1, 0);
+                      // color = colorTemp + color;
+                 //   color.x = max(color.x, colorTemp.x);
+                 //   color.y = max(color.y, colorTemp.y);
+                 //   color.z = max(color.z, colorTemp.z);
+                 //   color.w = max(color.w, colorTemp.w);
+     
+                 // 
+                 // }
+                      color = color * max(1 - (object->shadingValues.Kt - 0.1), 0.1);
+                      color = (color + colorTemp);
+                      color.w = 1;
                   }
+  
 
 
               //}
@@ -628,7 +630,7 @@ void initCornellBox(){
     _shadingValues.color = vec4(0.0,1.0,0.0,1.0);
     _shadingValues.Ka = 0.0;
     _shadingValues.Kd = 1.0;
-    _shadingValues.Ks = 1.;
+    _shadingValues.Ks = 0.;
     _shadingValues.Kn = 16.0;
     _shadingValues.Kt = 0.0;
     _shadingValues.Kr = 0.0;
@@ -698,7 +700,7 @@ void initCornellBox(){
     _shadingValues.color = vec4(1.0,1.0,1.0,1.0);
     _shadingValues.Ka = 0.0;
     _shadingValues.Kd = 1.0;
-    _shadingValues.Ks = 1.0;
+    _shadingValues.Ks = 0.0;
     _shadingValues.Kn = 16.0;
     _shadingValues.Kt = 0.0;
     _shadingValues.Kr = 0.0;
@@ -708,7 +710,7 @@ void initCornellBox(){
 
 
   {
-  sceneObjects.push_back(new Sphere("Glass sphere", vec3(1.0, -1.25, 0.5),0.75));
+  sceneObjects.push_back(new Sphere("Glass sphere", vec3(1.0, -1.2, 0.5),0.75));
  // sceneObjects.push_back(new Sphere("Glass sphere", vec3(1.0, 1, -0.5), 0.75));
   Object::ShadingValues _shadingValues;
   _shadingValues.color = vec4(1.0,0.0,0.0,1.0);
@@ -723,7 +725,7 @@ void initCornellBox(){
   }
 
   {
-  sceneObjects.push_back(new Sphere("Mirrored Sphere", vec3(-1.0, -1.25, 0.5), 0.75));
+  sceneObjects.push_back(new Sphere("Mirrored Sphere", vec3(-1.0, -1.2, 0.5), 0.75));
   //sceneObjects.push_back(new Sphere("Mirrored Sphere", vec3(-1.0, 1, -0.5),0.75));
   Object::ShadingValues _shadingValues;
   _shadingValues.color = vec4(1.0,1.0,1.0,1.0);
